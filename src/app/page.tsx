@@ -1,127 +1,78 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { QrEngine } from "@/components/qr/QrEngine";
-import { QrCode, Download, Link, Type, Palette } from "lucide-react";
-import { downloadCanvasAsPng } from "@/lib/download-utils";
-import { cn } from "@/lib/utils";
+import React, { useRef, useState } from "react";
+import { QrEngine, QrConfig } from "@/components/qr/QrEngine";
+import { QrControlPanel } from "@/components/qr/QrControlPanel";
+import { downloadPng, downloadSvg } from "@/lib/download-utils";
+import { Download, FileCode } from "lucide-react";
+
+const INITIAL_CONFIG: QrConfig = {
+  value: "https://llegue.app",
+  colors: {
+    bg: "#09090b",
+    fg: "#06b6d4",
+    accent: "#d946ef",
+  },
+  style: {
+    connectivity: 0.8,
+    dotScale: 0.7,
+  },
+};
 
 export default function Home() {
-  const [content, setContent] = useState("https://example.com");
-  const [bgColor, setBgColor] = useState("#ffffff");
-  const [fgColor, setFgColor] = useState("#000000");
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [config, setConfig] = useState<QrConfig>(INITIAL_CONFIG);
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  const handleDownload = () => {
-    if (canvasRef.current && content) {
-      downloadCanvasAsPng(canvasRef.current, `qr-code-${Date.now()}`);
-    }
+  const handleDownloadSvg = () => {
+    if (svgRef.current) downloadSvg(svgRef.current, `llegue-qr-${Date.now()}`);
+  };
+
+  const handleDownloadPng = () => {
+    if (svgRef.current) downloadPng(svgRef.current, `llegue-qr-${Date.now()}`);
   };
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6 md:p-12 flex flex-col items-center justify-center font-sans tracking-tight">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        {/* Editor Section */}
-        <div className="space-y-8">
-          <div className="space-y-2">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-400 to-indigo-500 bg-clip-text text-transparent">
-              Llegue QR Forge
-            </h1>
-            <p className="text-neutral-400 text-lg">
-              Create beautiful, high-quality QR codes instantly.
-            </p>
-          </div>
+    <main className="h-screen w-screen flex bg-zinc-950 overflow-hidden text-zinc-100">
+      {/* Left Interface */}
+      <aside className="w-[400px] h-full flex-shrink-0 z-10 relative shadow-2xl">
+        <QrControlPanel config={config} onChange={setConfig} />
+      </aside>
 
-          <div className="space-y-6 bg-neutral-900/50 p-6 rounded-2xl border border-neutral-800 backdrop-blur-sm">
-            {/* Content Input */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-neutral-300 flex items-center gap-2">
-                <Link className="w-4 h-4" /> Content (URL or Text)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="https://your-website.com"
-                  className="w-full bg-neutral-800 border-neutral-700 text-white placeholder-neutral-500 rounded-lg px-4 py-3 focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all outline-none"
-                />
-              </div>
-            </div>
+      {/* Right Preview */}
+      <section className="flex-1 relative flex flex-col items-center justify-center p-12 bg-[#050505] bg-[radial-gradient(#18181b_1px,transparent_1px)] [background-size:16px_16px]">
+        {/* Glow Effects */}
+        <div
+          className="absolute pointer-events-none w-[600px] h-[600px] rounded-full opacity-20 blur-[100px] transition-colors duration-500"
+          style={{ backgroundColor: config.colors.accent }}
+        />
 
-            {/* Color Pickers */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-neutral-300 flex items-center gap-2">
-                  <Palette className="w-4 h-4" /> Background
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="w-10 h-10 rounded cursor-pointer bg-transparent border-0 p-0"
-                  />
-                  <span className="text-sm text-neutral-400 font-mono uppercase">
-                    {bgColor}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-neutral-300 flex items-center gap-2">
-                  <Palette className="w-4 h-4" /> Foreground
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={fgColor}
-                    onChange={(e) => setFgColor(e.target.value)}
-                    className="w-10 h-10 rounded cursor-pointer bg-transparent border-0 p-0"
-                  />
-                  <span className="text-sm text-neutral-400 font-mono uppercase">
-                    {fgColor}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4">
-              <button
-                onClick={handleDownload}
-                disabled={!content}
-                className={cn(
-                  "w-full flex items-center justify-center gap-2 py-3 px-6 rounded-lg font-medium transition-all",
-                  content
-                    ? "bg-teal-500 hover:bg-teal-400 text-neutral-950 shadow-lg shadow-teal-500/20"
-                    : "bg-neutral-800 text-neutral-500 cursor-not-allowed",
-                )}
-              >
-                <Download className="w-5 h-5" />
-                Download PNG
-              </button>
-            </div>
-          </div>
+        <div className="relative group z-10 scale-90 md:scale-100 lg:scale-110 transition-all duration-500">
+          <QrEngine
+            ref={svgRef}
+            config={config}
+            size={500}
+            className="shadow-2xl border border-zinc-800/50"
+          />
         </div>
 
-        {/* Preview Section */}
-        <div className="flex flex-col items-center justify-center space-y-6 lg:sticky lg:top-12">
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-            <QrEngine
-              ref={canvasRef}
-              content={content}
-              size={350}
-              bgColor={bgColor}
-              fgColor={fgColor}
-              className="relative"
-            />
-          </div>
-          <p className="text-sm text-neutral-500">
-            Preview updates automatically as you type.
-          </p>
+        {/* Action Bar */}
+        <div className="absolute bottom-12 flex items-center gap-4 bg-zinc-900/80 backdrop-blur-md p-4 rounded-xl border border-zinc-800">
+          <button
+            onClick={handleDownloadSvg}
+            className="flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 hover:text-white text-zinc-300 rounded-lg transition-all font-mono text-sm uppercase tracking-wide"
+          >
+            <FileCode className="w-4 h-4" />
+            SVG (Print)
+          </button>
+          <button
+            onClick={handleDownloadPng}
+            className="flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-lg shadow-lg shadow-teal-500/20 transition-all font-mono text-sm uppercase tracking-wide font-bold"
+          >
+            <Download className="w-4 h-4" />
+            PNG (Digital)
+          </button>
         </div>
-      </div>
+      </section>
     </main>
   );
 }
