@@ -1,38 +1,34 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { QrEngine } from "@/components/qr/QrEngine";
+import { QrEngine, QrEngineHandle } from "@/components/qr/QrEngine";
 import { QrControlPanel, QrConfigState } from "@/components/qr/QrControlPanel";
-import { downloadPng, downloadSvg } from "@/lib/download-utils";
 import { Download, FileCode } from "lucide-react";
 
 const INITIAL_CONFIG: QrConfigState = {
   value: "https://llegue.app",
   colors: {
-    background: "#1e1b4b", // Royal Blue default for print based on user request
+    background: "#1e1b4b", // Royal Blue
     foreground: "#fbbf24", // Amber
     accent: "#f59e0b", // Amber accent
   },
   style: {
-    connectivity: 0.3,
-    dotScale: 0.9,
-    mandalaComplexity: 0.7,
-    showBorder: true,
+    dotsType: "classy",
+    cornersSquareType: "extra-rounded",
+    cornersDotType: "dot",
   },
 };
 
 export default function Home() {
   const [config, setConfig] = useState<QrConfigState>(INITIAL_CONFIG);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const qrRef = useRef<QrEngineHandle>(null);
 
   const handleDownloadSvg = () => {
-    if (svgRef.current)
-      downloadSvg(svgRef.current, `llegue-qr-v3-${Date.now()}`);
+    qrRef.current?.download("svg");
   };
 
   const handleDownloadPng = () => {
-    if (svgRef.current)
-      downloadPng(svgRef.current, `llegue-qr-v3-${Date.now()}`);
+    qrRef.current?.download("png");
   };
 
   return (
@@ -43,7 +39,7 @@ export default function Home() {
       </aside>
 
       {/* Right Preview */}
-      <section className="flex-1 relative flex flex-col items-center justify-center p-12 bg-[#050505] bg-[radial-gradient(#18181b_1px,transparent_1px)] [background-size:16px_16px]">
+      <section className="flex-1 relative flex flex-col items-center justify-center p-12 bg-[#09090b] bg-[radial-gradient(#18181b_1px,transparent_1px)] [background-size:16px_16px]">
         {/* Glow Effects */}
         <div
           className="absolute pointer-events-none w-[600px] h-[600px] rounded-full opacity-10 blur-[120px] transition-colors duration-500"
@@ -52,8 +48,8 @@ export default function Home() {
 
         <div className="relative group z-10 scale-90 md:scale-100 lg:scale-110 transition-all duration-500">
           <QrEngine
-            ref={svgRef}
-            value={config.value}
+            ref={qrRef}
+            content={config.value}
             colors={config.colors}
             style={config.style}
             logoUrl={config.logo?.url || undefined}

@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Upload, Shuffle, Settings2, Sliders, Layers } from "lucide-react";
+import { Upload, Settings2, Sliders, Palette, Shapes } from "lucide-react";
+import { DotType, CornerSquareType, CornerDotType } from "qr-code-styling";
 
 export interface QrConfigState {
   value: string;
@@ -11,10 +12,9 @@ export interface QrConfigState {
     accent: string;
   };
   style: {
-    connectivity: number;
-    dotScale: number;
-    mandalaComplexity: number;
-    showBorder: boolean;
+    dotsType: DotType;
+    cornersSquareType: CornerSquareType;
+    cornersDotType: CornerDotType;
   };
   logo?: {
     file: File | null;
@@ -27,38 +27,57 @@ interface QrControlPanelProps {
   onChange: (newConfig: QrConfigState) => void;
 }
 
-const PRESETS = {
+const PRESETS: Record<
+  string,
+  {
+    name: string;
+    colors: QrConfigState["colors"];
+    style: QrConfigState["style"];
+  }
+> = {
   cyberpunk: {
     name: "Cyberpunk",
     colors: { background: "#09090b", foreground: "#06b6d4", accent: "#d946ef" },
     style: {
-      connectivity: 0.8,
-      dotScale: 0.8,
-      mandalaComplexity: 0.8,
-      showBorder: true,
+      dotsType: "dots",
+      cornersSquareType: "extra-rounded",
+      cornersDotType: "dot",
     },
   },
   royal: {
     name: "Royal Security",
     colors: { background: "#1e1b4b", foreground: "#fbbf24", accent: "#f59e0b" },
     style: {
-      connectivity: 0.3,
-      dotScale: 0.9,
-      mandalaComplexity: 0.6,
-      showBorder: true,
+      dotsType: "classy",
+      cornersSquareType: "extra-rounded",
+      cornersDotType: "dot",
     },
   },
   matrix: {
     name: "Matrix",
     colors: { background: "#022c22", foreground: "#4ade80", accent: "#22c55e" },
     style: {
-      connectivity: 1,
-      dotScale: 0.6,
-      mandalaComplexity: 0.9,
-      showBorder: true,
+      dotsType: "square",
+      cornersSquareType: "square",
+      cornersDotType: "square",
     },
   },
 };
+
+const DOT_TYPES: DotType[] = [
+  "dots",
+  "rounded",
+  "classy",
+  "classy-rounded",
+  "square",
+  "extra-rounded",
+];
+const CORNER_SQUARE_TYPES: CornerSquareType[] = [
+  "dot",
+  "square",
+  "extra-rounded",
+];
+const CORNER_DOT_TYPES: CornerDotType[] = ["dot", "square"];
 
 export function QrControlPanel({ config, onChange }: QrControlPanelProps) {
   const handleValuesChange = (key: keyof QrConfigState, value: any) => {
@@ -84,7 +103,7 @@ export function QrControlPanel({ config, onChange }: QrControlPanelProps) {
     }
   };
 
-  const applyPreset = (presetKey: keyof typeof PRESETS) => {
+  const applyPreset = (presetKey: string) => {
     const preset = PRESETS[presetKey];
     onChange({
       ...config,
@@ -109,7 +128,7 @@ export function QrControlPanel({ config, onChange }: QrControlPanelProps) {
           System Presets
         </label>
         <div className="grid grid-cols-3 gap-2">
-          {(Object.keys(PRESETS) as Array<keyof typeof PRESETS>).map((key) => (
+          {Object.keys(PRESETS).map((key) => (
             <button
               key={key}
               onClick={() => applyPreset(key)}
@@ -135,97 +154,84 @@ export function QrControlPanel({ config, onChange }: QrControlPanelProps) {
         />
       </div>
 
-      {/* Sliders */}
+      {/* Shapes & Styles */}
       <div className="space-y-6 border-t border-zinc-800 pt-6">
         <div className="flex items-center gap-2 text-teal-400">
-          <Sliders className="w-4 h-4" />
+          <Shapes className="w-4 h-4" />
           <label className="text-xs uppercase tracking-wider font-bold">
-            Parameters
+            Morphology
           </label>
         </div>
 
         <div className="space-y-4">
-          {/* Mandala Complexity */}
+          {/* Dot Type */}
           <div className="space-y-2">
-            <div className="flex justify-between text-xs text-zinc-500">
-              <span>Mandala Complexity</span>
-              <span>{Math.round(config.style.mandalaComplexity * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={config.style.mandalaComplexity}
-              onChange={(e) =>
-                handleStyleChange(
-                  "mandalaComplexity",
-                  parseFloat(e.target.value),
-                )
-              }
-              className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-teal-500"
-            />
-          </div>
-          {/* Connectivity */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-zinc-500">
-              <span>Synapse Opacity</span>
-              <span>{Math.round(config.style.connectivity * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={config.style.connectivity}
-              onChange={(e) =>
-                handleStyleChange("connectivity", parseFloat(e.target.value))
-              }
-              className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-teal-500"
-            />
-          </div>
-          {/* Dot Scale */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-zinc-500">
-              <span>Node Size</span>
-              <span>{Math.round(config.style.dotScale * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0.1"
-              max="1"
-              step="0.05"
-              value={config.style.dotScale}
-              onChange={(e) =>
-                handleStyleChange("dotScale", parseFloat(e.target.value))
-              }
-              className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-teal-500"
-            />
+            <label className="text-xs text-zinc-500 uppercase">
+              Data Pattern
+            </label>
+            <select
+              value={config.style.dotsType}
+              onChange={(e) => handleStyleChange("dotsType", e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-700 rounded p-2 text-sm text-zinc-300 focus:border-teal-500 focus:ring-teal-500"
+            >
+              {DOT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type.replace("-", " ")}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Border Toggle */}
-          <div className="flex items-center gap-3 pt-2">
-            <input
-              type="checkbox"
-              id="showBorder"
-              checked={config.style.showBorder}
-              onChange={(e) =>
-                handleStyleChange("showBorder", e.target.checked)
-              }
-              className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-teal-500 focus:ring-teal-500"
-            />
-            <label htmlFor="showBorder" className="text-sm text-zinc-400">
-              Show Neural Shield (Border)
+          {/* Corner Square Type */}
+          <div className="space-y-2">
+            <label className="text-xs text-zinc-500 uppercase">
+              Finder Frame
             </label>
+            <select
+              value={config.style.cornersSquareType}
+              onChange={(e) =>
+                handleStyleChange("cornersSquareType", e.target.value)
+              }
+              className="w-full bg-zinc-950 border border-zinc-700 rounded p-2 text-sm text-zinc-300 focus:border-teal-500 focus:ring-teal-500"
+            >
+              {CORNER_SQUARE_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type.replace("-", " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Corner Dot Type */}
+          <div className="space-y-2">
+            <label className="text-xs text-zinc-500 uppercase">
+              Finder Core
+            </label>
+            <select
+              value={config.style.cornersDotType}
+              onChange={(e) =>
+                handleStyleChange("cornersDotType", e.target.value)
+              }
+              className="w-full bg-zinc-950 border border-zinc-700 rounded p-2 text-sm text-zinc-300 focus:border-teal-500 focus:ring-teal-500"
+            >
+              {CORNER_DOT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type.replace("-", " ")}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
 
       {/* Colors */}
       <div className="space-y-3 border-t border-zinc-800 pt-6">
-        <label className="text-xs uppercase tracking-wider text-zinc-500 font-bold">
-          Pigments
-        </label>
+        <div className="flex items-center gap-2 text-teal-400 mb-3">
+          <Palette className="w-4 h-4" />
+          <label className="text-xs uppercase tracking-wider font-bold">
+            Pigments
+          </label>
+        </div>
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1">
             <label className="text-[10px] text-zinc-500 uppercase">
