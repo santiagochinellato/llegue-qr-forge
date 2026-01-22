@@ -2,42 +2,65 @@
 
 import React from "react";
 import { Upload, Shuffle, Settings2, Sliders } from "lucide-react";
-import { QrConfig } from "./QrEngine";
 import { cn } from "@/lib/utils";
 
+// We redefine the config type here to match the new engine props
+export interface QrConfigState {
+  value: string;
+  colors: {
+    background: string;
+    foreground: string;
+    accent: string;
+  };
+  style: {
+    connectivity: number;
+    dotScale: number;
+  };
+  logo?: {
+    file: File | null;
+    url: string | null;
+  };
+}
+
 interface QrControlPanelProps {
-  config: QrConfig;
-  onChange: (newConfig: QrConfig) => void;
+  config: QrConfigState;
+  onChange: (newConfig: QrConfigState) => void;
 }
 
 const PRESETS = {
   cyberpunk: {
     name: "Cyberpunk",
-    colors: { bg: "#09090b", fg: "#06b6d4", accent: "#d946ef" }, // Zinc-950, Cyan, Magenta
+    colors: { background: "#09090b", foreground: "#06b6d4", accent: "#d946ef" }, // Zinc-950, Cyan, Magenta
     style: { connectivity: 0.8, dotScale: 0.8 },
   },
   royal: {
     name: "Royal",
-    colors: { bg: "#1e1b4b", fg: "#fbbf24", accent: "#3b82f6" }, // Indigo-950, Amber, Blue
+    colors: { background: "#1e1b4b", foreground: "#fbbf24", accent: "#3b82f6" }, // Indigo-950, Amber, Blue
     style: { connectivity: 0.3, dotScale: 0.9 },
   },
   matrix: {
     name: "Matrix",
-    colors: { bg: "#022c22", fg: "#4ade80", accent: "#22c55e" }, // Emerald-950, Green-400, Green-500
+    colors: { background: "#022c22", foreground: "#4ade80", accent: "#22c55e" }, // Emerald-950, Green-400, Green-500
     style: { connectivity: 1, dotScale: 0.6 },
   },
 };
 
 export function QrControlPanel({ config, onChange }: QrControlPanelProps) {
-  const handleValuesChange = (key: keyof QrConfig, value: any) => {
+  const handleValuesChange = (key: keyof QrConfigState, value: any) => {
     onChange({ ...config, [key]: value });
   };
 
-  const handleStyleChange = (key: keyof QrConfig["style"], value: number) => {
+  const handleStyleChange = (
+    key: keyof QrConfigState["style"],
+    value: number,
+  ) => {
     onChange({ ...config, style: { ...config.style, [key]: value } });
   };
 
-  const handleColorChange = (key: keyof QrConfig["colors"], value: string) => {
+  const handleColorChange = (
+    key: keyof QrConfigState["colors"],
+    value: string,
+  ) => {
     onChange({ ...config, colors: { ...config.colors, [key]: value } });
   };
 
@@ -176,8 +199,10 @@ export function QrControlPanel({ config, onChange }: QrControlPanelProps) {
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={config.colors.bg}
-                onChange={(e) => handleColorChange("bg", e.target.value)}
+                value={config.colors.background}
+                onChange={(e) =>
+                  handleColorChange("background", e.target.value)
+                }
                 className="w-8 h-8 rounded bg-transparent border-0 cursor-pointer"
               />
             </div>
@@ -189,8 +214,10 @@ export function QrControlPanel({ config, onChange }: QrControlPanelProps) {
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={config.colors.fg}
-                onChange={(e) => handleColorChange("fg", e.target.value)}
+                value={config.colors.foreground}
+                onChange={(e) =>
+                  handleColorChange("foreground", e.target.value)
+                }
                 className="w-8 h-8 rounded bg-transparent border-0 cursor-pointer"
               />
             </div>

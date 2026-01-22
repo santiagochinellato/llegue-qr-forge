@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { QrEngine, QrConfig } from "@/components/qr/QrEngine";
-import { QrControlPanel } from "@/components/qr/QrControlPanel";
+import { QrEngine } from "@/components/qr/QrEngine";
+import { QrControlPanel, QrConfigState } from "@/components/qr/QrControlPanel";
 import { downloadPng, downloadSvg } from "@/lib/download-utils";
 import { Download, FileCode } from "lucide-react";
 
-const INITIAL_CONFIG: QrConfig = {
+const INITIAL_CONFIG: QrConfigState = {
   value: "https://llegue.app",
   colors: {
-    bg: "#09090b",
-    fg: "#06b6d4",
+    background: "#09090b",
+    foreground: "#06b6d4",
     accent: "#d946ef",
   },
   style: {
@@ -20,7 +20,7 @@ const INITIAL_CONFIG: QrConfig = {
 };
 
 export default function Home() {
-  const [config, setConfig] = useState<QrConfig>(INITIAL_CONFIG);
+  const [config, setConfig] = useState<QrConfigState>(INITIAL_CONFIG);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const handleDownloadSvg = () => {
@@ -49,7 +49,10 @@ export default function Home() {
         <div className="relative group z-10 scale-90 md:scale-100 lg:scale-110 transition-all duration-500">
           <QrEngine
             ref={svgRef}
-            config={config}
+            value={config.value}
+            colors={config.colors}
+            style={config.style}
+            logoUrl={config.logo?.url || undefined}
             size={500}
             className="shadow-2xl border border-zinc-800/50"
           />
