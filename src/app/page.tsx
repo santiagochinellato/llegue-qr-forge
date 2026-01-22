@@ -9,13 +9,15 @@ import { Download, FileCode } from "lucide-react";
 const INITIAL_CONFIG: QrConfigState = {
   value: "https://llegue.app",
   colors: {
-    background: "#09090b",
-    foreground: "#06b6d4",
-    accent: "#d946ef",
+    background: "#1e1b4b", // Royal Blue default for print based on user request
+    foreground: "#fbbf24", // Amber
+    accent: "#f59e0b", // Amber accent
   },
   style: {
-    connectivity: 0.8,
-    dotScale: 0.7,
+    connectivity: 0.3,
+    dotScale: 0.9,
+    mandalaComplexity: 0.7,
+    showBorder: true,
   },
 };
 
@@ -24,11 +26,13 @@ export default function Home() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   const handleDownloadSvg = () => {
-    if (svgRef.current) downloadSvg(svgRef.current, `llegue-qr-${Date.now()}`);
+    if (svgRef.current)
+      downloadSvg(svgRef.current, `llegue-qr-v3-${Date.now()}`);
   };
 
   const handleDownloadPng = () => {
-    if (svgRef.current) downloadPng(svgRef.current, `llegue-qr-${Date.now()}`);
+    if (svgRef.current)
+      downloadPng(svgRef.current, `llegue-qr-v3-${Date.now()}`);
   };
 
   return (
@@ -42,7 +46,7 @@ export default function Home() {
       <section className="flex-1 relative flex flex-col items-center justify-center p-12 bg-[#050505] bg-[radial-gradient(#18181b_1px,transparent_1px)] [background-size:16px_16px]">
         {/* Glow Effects */}
         <div
-          className="absolute pointer-events-none w-[600px] h-[600px] rounded-full opacity-20 blur-[100px] transition-colors duration-500"
+          className="absolute pointer-events-none w-[600px] h-[600px] rounded-full opacity-10 blur-[120px] transition-colors duration-500"
           style={{ backgroundColor: config.colors.accent }}
         />
 
@@ -53,8 +57,8 @@ export default function Home() {
             colors={config.colors}
             style={config.style}
             logoUrl={config.logo?.url || undefined}
-            size={500}
-            className="shadow-2xl border border-zinc-800/50"
+            size={600} // Increased base size for better print preview resolution
+            className="shadow-2xl border-none"
           />
         </div>
 

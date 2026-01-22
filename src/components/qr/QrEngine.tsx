@@ -2,30 +2,46 @@
 
 import React, { useMemo, forwardRef } from "react";
 import QRCode from "qrcode";
+import { cn } from "@/lib/utils";
 
 interface QrEngineProps {
   value: string;
   size?: number;
-  logoUrl?: string; // Changed from logo object
+  logoUrl?: string;
   colors: {
-    background: string; // Changed from bg
-    foreground: string; // Changed from fg
+    background: string;
+    foreground: string;
     accent: string;
   };
   style: {
     connectivity: number;
     dotScale: number;
+    mandalaComplexity: number; // 0 to 1
+    showBorder: boolean;
   };
   className?: string; // Added back for flexibility
 }
 
+// Helper for polar coordinates
+const polarToCartesian = (
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angleInDegrees: number,
+) => {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  return {
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians),
+  };
+};
+
 export const QrEngine = forwardRef<SVGSVGElement, QrEngineProps>(
-  ({ value, size = 300, logoUrl, colors, style, className }, ref) => {
-    // 1. Generamos la Matriz Lógica (Ceros y Unos puros)
+  ({ value, size = 500, logoUrl, colors, style, className }, ref) => {
     const qrData = useMemo(() => {
       try {
         const qr = QRCode.create(value, { errorCorrectionLevel: "H" });
-        const modules = qr.modules; // Matriz 2D
+        const modules = qr.modules;
         return {
           matrix: modules.data,
           size: modules.size,
@@ -40,9 +56,12 @@ export const QrEngine = forwardRef<SVGSVGElement, QrEngineProps>(
     if (!qrData) return null;
 
     const { matrix, size: matrixSize } = qrData;
-    const cellSize = size / matrixSize;
+    // Calculate cell size based on a fixed coordinate system (e.g., 100x100 for the QR part)
+    // We'll use a coordinate system where the QR is centered at 0,0 and spans width/height.
+    const qrDimension = size * 0.6; // QR occupies 60% of the total drawing area to leave room for mandala
+    const cellSize = qrDimension / matrixSize;
+    const offset = -qrDimension / 2; // Center the QR
 
-    // Helpers para identificar si una coordenada es parte de los "Ojos" (Finder Patterns)
     const isFinderPattern = (r: number, c: number) => {
       const isTopLeft = r < 7 && c < 7;
       const isTopRight = r < 7 && c >= matrixSize - 7;
@@ -51,171 +70,268 @@ export const QrEngine = forwardRef<SVGSVGElement, QrEngineProps>(
     };
 
     const finders = [
-      { cx: 3.5 * cellSize, cy: 3.5 * cellSize }, // Top Left
-      { cx: (matrixSize - 3.5) * cellSize, cy: 3.5 * cellSize }, // Top Right
-      { cx: 3.5 * cellSize, cy: (matrixSize - 3.5) * cellSize }, // Bottom Left
+      { r: 3.5, c: 3.5 }, // Top Left
+      { r: 3.5, c: matrixSize - 3.5 }, // Top Right
+      { r: matrixSize - 3.5, c: 3.5 }, // Bottom Left
     ];
 
-    // Elementos SVG
-    const connections: React.JSX.Element[] = [];
-    const dots: React.JSX.Element[] = [];
+    // --- LAYER A: MANDALA FRAME ---
+    const renderMandalaLayer = () => {
+      if (!style.showBorder) return null;
 
-    // 2. Algoritmo de Renderizado "Red Neuronal"
-    for (let r = 0; r < matrixSize; r++) {
-      for (let c = 0; c < matrixSize; c++) {
-        if (isFinderPattern(r, c)) continue;
+      const elements: React.JSX.Element[] = [];
+      const complexity = style.mandalaComplexity || 0.5;
+      const center = 0;
 
-        const index = r * matrixSize + c;
-        const isActive = matrix[index];
+      // Ring 1: Tech Arcs
+      const r1 = (size / 2) * 0.65;
+      const dashCount = Math.floor(12 + complexity * 24);
+      const arcLength = 360 / dashCount;
 
-        if (isActive) {
-          const x = c * cellSize + cellSize / 2;
-          const y = r * cellSize + cellSize / 2;
+      for (let i = 0; i < dashCount; i++) {
+        if (i % 2 === 0) continue; // Gaps
+        const startAngle = i * arcLength;
+        const endAngle = startAngle + arcLength * 0.7;
+        const start = polarToCartesian(center, center, r1, startAngle);
+        const end = polarToCartesian(center, center, r1, endAngle);
 
-          // A. PUNTOS (Nodos)
-          const center = matrixSize / 2;
-          const dist = Math.sqrt((r - center) ** 2 + (c - center) ** 2);
-          if (logoUrl && dist < matrixSize * 0.15) continue; // Hueco para logo
+        // Arc path
+        const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+        const d = [
+          "M",
+          start.x,
+          start.y,
+          "A",
+          r1,
+          r1,
+          0,
+          largeArcFlag,
+          1,
+          end.x,
+          end.y,
+        ].join(" ");
 
-          dots.push(
-            <circle
-              key={`dot-${r}-${c}`}
-              cx={x}
-              cy={y}
-              r={(cellSize * style.dotScale) / 2}
-              fill={colors.foreground}
-              className="drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]"
-            />,
+        elements.push(
+          <path
+            key={`ring1-${i}`}
+            d={d}
+            stroke={colors.accent}
+            strokeWidth={size * 0.005}
+            fill="none"
+            opacity={0.6}
+          />,
+        );
+      }
+
+      // Ring 2: Dots
+      const r2 = (size / 2) * 0.8;
+      const dotCount = Math.floor(20 + complexity * 40);
+      for (let i = 0; i < dotCount; i++) {
+        const angle = (360 / dotCount) * i;
+        const pos = polarToCartesian(center, center, r2, angle);
+        elements.push(
+          <circle
+            key={`ring2-${i}`}
+            cx={pos.x}
+            cy={pos.y}
+            r={size * 0.004}
+            fill={colors.accent}
+            opacity={0.4}
+          />,
+        );
+      }
+
+      // Ring 3: Runes / Dashes (Outer)
+      if (complexity > 0.3) {
+        const r3 = (size / 2) * 0.95;
+        const runeCount = 8;
+        for (let i = 0; i < runeCount; i++) {
+          const angle = (360 / runeCount) * i;
+          const pos = polarToCartesian(center, center, r3, angle);
+          // Draw a small T shape or bracket
+          elements.push(
+            <g
+              key={`ring3-${i}`}
+              transform={`rotate(${angle}, ${pos.x}, ${pos.y})`}
+            >
+              <line
+                x1={pos.x - 5}
+                y1={pos.y}
+                x2={pos.x + 5}
+                y2={pos.y}
+                stroke={colors.accent}
+                strokeWidth={2}
+                opacity={0.5}
+              />
+              <line
+                x1={pos.x}
+                y1={pos.y - 5}
+                x2={pos.x}
+                y2={pos.y + 5}
+                stroke={colors.accent}
+                strokeWidth={2}
+                opacity={0.5}
+              />
+            </g>,
           );
+        }
+      }
 
-          // B. CONEXIONES
-          // Vecino Derecho
-          if (c < matrixSize - 1) {
-            const rightIndex = r * matrixSize + (c + 1);
-            if (matrix[rightIndex] && !isFinderPattern(r, c + 1)) {
-              connections.push(
-                <line
-                  key={`conn-h-${r}-${c}`}
-                  x1={x}
-                  y1={y}
-                  x2={x + cellSize}
-                  y2={y}
-                  stroke={colors.foreground}
-                  strokeWidth={cellSize * 0.15}
-                  strokeOpacity={style.connectivity}
-                  strokeLinecap="round"
-                />,
-              );
-            }
-          }
+      return <g className="mandala-frame">{elements}</g>;
+    };
 
-          // Vecino Abajo
-          if (r < matrixSize - 1) {
-            const bottomIndex = (r + 1) * matrixSize + c;
-            if (matrix[bottomIndex] && !isFinderPattern(r + 1, c)) {
-              connections.push(
-                <line
-                  key={`conn-v-${r}-${c}`}
-                  x1={x}
-                  y1={y}
-                  x2={x}
-                  y2={y + cellSize}
-                  stroke={colors.foreground}
-                  strokeWidth={cellSize * 0.15}
-                  strokeOpacity={style.connectivity}
-                  strokeLinecap="round"
-                />,
-              );
-            }
+    // --- LAYER B: DATA NETWORK ---
+    const renderDataLayer = () => {
+      const dots: React.JSX.Element[] = [];
+      const conns: React.JSX.Element[] = [];
+
+      for (let r = 0; r < matrixSize; r++) {
+        for (let c = 0; c < matrixSize; c++) {
+          if (isFinderPattern(r, c)) continue;
+
+          const index = r * matrixSize + c;
+          if (matrix[index]) {
+            const x = offset + c * cellSize + cellSize / 2;
+            const y = offset + r * cellSize + cellSize / 2;
+
+            // Logo Safety
+            const absCenter = 0;
+            const dist = Math.sqrt((x - absCenter) ** 2 + (y - absCenter) ** 2);
+            if (logoUrl && dist < qrDimension * 0.15) continue;
+
+            // Node
+            dots.push(
+              <circle
+                key={`d-${r}-${c}`}
+                cx={x}
+                cy={y}
+                r={(cellSize * style.dotScale) / 2}
+                fill={colors.foreground}
+              />,
+            );
+
+            // Connections
+            const renderConn = (
+              r2: number,
+              c2: number,
+              key: string,
+              isVertical: boolean,
+            ) => {
+              const idx2 = r2 * matrixSize + c2;
+              if (matrix[idx2] && !isFinderPattern(r2, c2)) {
+                const x2 = offset + c2 * cellSize + cellSize / 2;
+                const y2 = offset + r2 * cellSize + cellSize / 2;
+                conns.push(
+                  <line
+                    key={key}
+                    x1={x}
+                    y1={y}
+                    x2={x2}
+                    y2={y2}
+                    stroke={colors.foreground}
+                    strokeWidth={cellSize * 0.15} // Thin for print
+                    strokeOpacity={style.connectivity}
+                    strokeLinecap="round"
+                  />,
+                );
+              }
+            };
+
+            if (c < matrixSize - 1) renderConn(r, c + 1, `h-${r}-${c}`, false);
+            if (r < matrixSize - 1) renderConn(r + 1, c, `v-${r}-${c}`, true);
           }
         }
       }
-    }
+      return (
+        <g className="data-network">
+          {conns}
+          {dots}
+        </g>
+      );
+    };
+
+    // --- LAYER C: POWER ORBS ---
+    const renderPowerOrbs = () => {
+      return finders.map((f, i) => {
+        const cx = offset + f.c * cellSize;
+        const cy = offset + f.r * cellSize;
+        const moduleSize = cellSize;
+
+        // Exact 7-module size is 7 * cellSize. Radius is 3.5 * cellSize.
+        const outerR = 3 * moduleSize;
+
+        return (
+          <g key={`orb-${i}`}>
+            {/* Ring 1: Outer Thick */}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={outerR}
+              fill="none"
+              stroke={colors.accent}
+              strokeWidth={moduleSize * 0.8}
+            />
+            {/* Ring 2: Gap (Implicit) */}
+            {/* Ring 3: Middle Thin */}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={outerR * 0.65}
+              fill="none"
+              stroke={colors.accent}
+              strokeWidth={moduleSize * 0.2}
+            />
+            {/* Ring 4: Solid Core */}
+            <circle cx={cx} cy={cy} r={moduleSize * 1.2} fill={colors.accent} />
+          </g>
+        );
+      });
+    };
 
     return (
       <div
-        className={`relative flex items-center justify-center p-8 bg-black/20 rounded-xl backdrop-blur-sm border border-white/10 ${className || ""}`}
+        className={cn(
+          "inline-flex items-center justify-center bg-transparent",
+          className,
+        )}
       >
-        {/* 3. ANILLO DECORATIVO "MANDALA" */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none overflow-hidden">
-          <svg
-            width="140%"
-            height="140%"
-            viewBox="0 0 100 100"
-            className="animate-[spin_20s_linear_infinite]"
-          >
-            <circle
-              cx="50"
-              cy="50"
-              r="48"
-              fill="none"
-              stroke={colors.accent}
-              strokeWidth="0.5"
-              strokeDasharray="4 2"
-            />
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              fill="none"
-              stroke={colors.accent}
-              strokeWidth="0.2"
-            />
-          </svg>
-        </div>
-
         <svg
           ref={ref}
           width={size}
           height={size}
-          viewBox={`0 0 ${size} ${size}`}
-          style={{ backgroundColor: colors.background }}
-          className="rounded-lg shadow-2xl"
+          viewBox={`${-size / 2} ${-size / 2} ${size} ${size}`} // Centered coordinate system
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <rect width="100%" height="100%" fill={colors.background} />
+          {/* Background */}
+          <rect
+            x={-size / 2}
+            y={-size / 2}
+            width={size}
+            height={size}
+            fill={colors.background}
+          />
 
-          {/* Capa 1: La Red Neuronal (Líneas) */}
-          <g className="mix-blend-screen">{connections}</g>
+          {/* Layers */}
+          {renderMandalaLayer()}
+          {renderDataLayer()}
+          {renderPowerOrbs()}
 
-          {/* Capa 2: Los Nodos (Puntos) */}
-          <g className="mix-blend-screen">{dots}</g>
-
-          {/* Capa 3: Los PORTALES (Finder Patterns Customizados) */}
-          {finders.map((f, i) => (
-            <g key={`finder-${i}`}>
-              {/* Anillo Exterior */}
-              <circle
-                cx={f.cx}
-                cy={f.cy}
-                r={cellSize * 3}
-                fill="none"
-                stroke={colors.accent}
-                strokeWidth={cellSize * 0.8}
-                className="drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]"
-              />
-              {/* Punto Central (Singularidad) */}
-              <circle
-                cx={f.cx}
-                cy={f.cy}
-                r={cellSize * 1.2}
-                fill={colors.accent}
-                className="animate-pulse"
+          {/* Logo */}
+          {logoUrl && (
+            <g>
+              <clipPath id="logoClip">
+                <circle cx={0} cy={0} r={qrDimension * 0.15} />
+              </clipPath>
+              <image
+                href={logoUrl}
+                x={-(qrDimension * 0.15)}
+                y={-(qrDimension * 0.15)}
+                width={qrDimension * 0.3}
+                height={qrDimension * 0.3}
+                clipPath="url(#logoClip)"
+                preserveAspectRatio="xMidYMid slice"
               />
             </g>
-          ))}
-
-          {/* Capa 4: Logo Central */}
-          {logoUrl && (
-            <image
-              x={size / 2 - size * 0.15}
-              y={size / 2 - size * 0.15}
-              width={size * 0.3}
-              height={size * 0.3}
-              href={logoUrl}
-              className="rounded-full"
-              style={{ clipPath: "circle(50%)" }}
-              preserveAspectRatio="xMidYMid slice"
-            />
           )}
         </svg>
       </div>
