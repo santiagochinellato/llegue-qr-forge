@@ -8,12 +8,12 @@ import { Download, FileCode } from "lucide-react";
 const INITIAL_CONFIG: QrConfigState = {
   value: "https://llegue.app",
   colors: {
-    background: "#1e1b4b", // Royal Blue
-    foreground: "#fbbf24", // Amber
-    accent: "#f59e0b", // Amber accent
+    background: "#000000", // Pure Black
+    foreground: "#00FFFF", // Pure Cyan
+    accent: "#FF00FF", // Pure Magenta
   },
   style: {
-    dotsType: "classy",
+    dotsType: "dots",
     cornersSquareType: "extra-rounded",
     cornersDotType: "dot",
   },

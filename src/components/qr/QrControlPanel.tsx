@@ -62,6 +62,15 @@ const PRESETS: Record<
       cornersDotType: "square",
     },
   },
+  printSafe: {
+    name: "Print Safe", // High Contrast
+    colors: { background: "#ffffff", foreground: "#000000", accent: "#000000" },
+    style: {
+      dotsType: "dots",
+      cornersSquareType: "extra-rounded",
+      cornersDotType: "dot",
+    },
+  },
 };
 
 const DOT_TYPES: DotType[] = [

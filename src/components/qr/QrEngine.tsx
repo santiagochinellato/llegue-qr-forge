@@ -60,7 +60,7 @@ export const QrEngine = forwardRef<QrEngineHandle, QrEngineProps>(
         height: size,
         data: content,
         image: logoUrl,
-        margin: 20,
+        margin: 40, // Expanded Quiet Zone for Inverted QRs
         qrOptions: {
           typeNumber: 0,
           mode: "Byte",
@@ -68,7 +68,7 @@ export const QrEngine = forwardRef<QrEngineHandle, QrEngineProps>(
         },
         imageOptions: {
           hideBackgroundDots: true,
-          imageSize: 0.4,
+          imageSize: 0.3, // Reduced from 0.4 for safety
           margin: 10,
           crossOrigin: "anonymous",
         },
